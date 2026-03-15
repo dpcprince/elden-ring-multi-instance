@@ -16,6 +16,8 @@ A tiny DLL proxy (`dinput8.dll`, 48KB) that sits in the game folder and intercep
 - Survives game updates (hooks Windows API, not game code)
 - No scripts to run — just drop the file and launch
 
+> **Important:** This mod does not work with Easy Anti-Cheat (EAC). You must launch the game through [Seamless Coop](https://www.nexusmods.com/eldenring/mods/510) (`ersc_launcher.exe`) or another launcher that bypasses EAC. The standard `start_protected_game.exe` launcher will not load the mod.
+
 ## Installation
 
 1. Download `dinput8.dll` from [Releases](../../releases)
@@ -40,9 +42,9 @@ Delete `dinput8.dll` from the `Game/` folder. Optionally delete `DINPUT8.log`.
 
 | | Status |
 |---|---|
-| **Seamless Coop** | Works — uses its own launcher + DLL, no conflict |
+| **Seamless Coop** | Required — its launcher bypasses EAC, which is needed for the mod to load |
 | **ModEngine2** | Conflict — also uses `dinput8.dll`. See [workaround](#modengine2-workaround) |
-| **EAC** | Not compatible — use offline or Seamless Coop (which disables EAC) |
+| **EAC** | **Not compatible** — EAC prevents the DLL from loading. You need a launcher that bypasses it (Seamless Coop, offline launch, etc.) |
 | **Game updates** | Unaffected — version-independent |
 
 ### ModEngine2 Workaround
