@@ -1,36 +1,36 @@
 # Elden Ring Multi-Instance Mod
 
-Run multiple instances of Elden Ring simultaneously. Useful for co-op with yourself, testing, or playing on multiple accounts.
+Elden Ring only allows one instance per machine. This is a problem if you're using [ASTER](https://www.ibik.ru/), [Sandboxie](https://sandboxie-plus.com/), or any multi-seat / desktop-sharing setup where two players share the same PC.
 
-## How It Works
+This mod removes that restriction.
 
-Elden Ring prevents multiple instances by creating a mutex named `Global\SekiroMutex` on startup. If the mutex already exists, the game refuses to launch.
+## The Problem
 
-This mod is a lightweight **DLL proxy** (`dinput8.dll`) that intercepts mutex creation at the Windows API level. When the game tries to create "SekiroMutex", the mod returns a dummy handle instead — no real named mutex is created, so subsequent instances launch without conflict.
+Elden Ring creates a system-wide mutex (`Global\SekiroMutex`) on startup. If it already exists, the game exits immediately — even if the two instances run under different Windows users or in separate desktops. This kills multi-seat setups where two people want to play together (or separately) on the same machine.
 
-**Technical details:**
-- Hooks both `CreateMutexW` and `CreateMutexExW` via IAT patching + inline hook fallback
-- Forwards all real DirectInput calls to the system `dinput8.dll`
-- Writes a diagnostic log (`DINPUT8.log`) on each launch
-- Does **not** modify any game files — works via Windows DLL search order
+## The Fix
+
+A tiny DLL proxy (`dinput8.dll`, 48KB) that sits in the game folder and intercepts the mutex creation call. Instead of creating a real named mutex, it returns a dummy handle. Each instance thinks it's the only one running.
+
+- No game files are modified
+- Survives game updates (hooks Windows API, not game code)
+- No scripts to run — just drop the file and launch
 
 ## Installation
 
 1. Download `dinput8.dll` from [Releases](../../releases)
 2. Copy it to your Elden Ring `Game/` folder (next to `eldenring.exe`)
-3. Launch the game normally (or via Seamless Coop launcher) — twice
-
-That's it. Both instances will start.
+3. Launch the game from both environments
 
 ### Where is the Game folder?
 
-Typical locations:
+In Steam: right-click Elden Ring → Manage → Browse Local Files → `Game/`
+
+Typical paths:
 ```
 D:\SteamLibrary\steamapps\common\ELDEN RING\Game\
 C:\Program Files (x86)\Steam\steamapps\common\ELDEN RING\Game\
 ```
-
-Or in Steam: right-click Elden Ring → Manage → Browse Local Files.
 
 ## Uninstallation
 
@@ -38,72 +38,56 @@ Delete `dinput8.dll` from the `Game/` folder. Optionally delete `DINPUT8.log`.
 
 ## Compatibility
 
-| Mod | Status | Notes |
-|-----|--------|-------|
-| **Seamless Coop** | Compatible | Uses its own launcher + `ersc.dll`, no conflict |
-| **ModEngine2** | **Conflict** | Also uses `dinput8.dll` — see [ModEngine2 Workaround](#modengine2-workaround) |
-| **EAC** | Not compatible | Only use offline or with Seamless Coop (which disables EAC) |
-| **Game updates** | Survives | Hooks Windows API, not game code — version-independent |
+| | Status |
+|---|---|
+| **Seamless Coop** | Works — uses its own launcher + DLL, no conflict |
+| **ModEngine2** | Conflict — also uses `dinput8.dll`. See [workaround](#modengine2-workaround) |
+| **EAC** | Not compatible — use offline or Seamless Coop (which disables EAC) |
+| **Game updates** | Unaffected — version-independent |
 
 ### ModEngine2 Workaround
 
-If you use ModEngine2, it already occupies the `dinput8.dll` slot. You can rebuild this mod as `version.dll` instead:
+ModEngine2 already uses the `dinput8.dll` slot. If you need both, use the included `kill_mutex.ps1` fallback script instead (see below).
 
-```bash
-# Edit dinput8_proxy.c: rename DirectInput8Create export to GetFileVersionInfoW (and other version.dll exports)
-# Or use the kill_mutex.ps1 fallback script instead
-```
+## Fallback: kill_mutex.ps1
 
-## Fallback: Runtime Mutex Kill
-
-If the DLL approach doesn't work for your setup, a PowerShell script is included that kills the mutex at runtime:
+If the DLL doesn't work for your setup (e.g., ModEngine2 conflict), a PowerShell script is included that kills the mutex at runtime:
 
 1. Launch Elden Ring (first instance)
 2. Run as **Administrator**:
    ```powershell
    powershell -ExecutionPolicy Bypass -File kill_mutex.ps1
    ```
-3. Launch second instance
+3. Launch the second instance
 
-## Troubleshooting
+## Verifying It Works
 
-**Game won't start / crashes on launch:**
-Delete `dinput8.dll`. If the game works without it, check `DINPUT8.log` for diagnostics.
-
-**Second instance still won't launch:**
-Check `DINPUT8.log` — look for `BLOCKED SekiroMutex`. If absent, the game may have changed its mutex mechanism. Use `kill_mutex.ps1` as fallback and [open an issue](../../issues).
-
-**How do I know it's working?**
-After launching, check `DINPUT8.log` in the Game folder. You should see:
+Each launch writes a small `DINPUT8.log` in the Game folder:
 ```
 === dinput8 proxy loaded ===
-[INIT] ...
 [INLINE] BLOCKED SekiroMutex (CreateMutexExW)
 ```
 
-## Building from Source
+If you see `BLOCKED SekiroMutex`, it's working.
 
-Requires [MinGW-w64](https://www.mingw-w64.org/) (or any x86_64 Windows C compiler).
+## Troubleshooting
+
+**Game won't start after installing:**
+Delete `dinput8.dll` and check if the game starts without it. If it does, check `DINPUT8.log` for clues and [open an issue](../../issues).
+
+**Second instance still won't launch:**
+Check `DINPUT8.log` — if `BLOCKED SekiroMutex` doesn't appear, the game may have changed its mutex mechanism. Try the `kill_mutex.ps1` fallback.
+
+## Building from Source
 
 ```bash
 x86_64-w64-mingw32-gcc -shared -o dinput8.dll dinput8_proxy.c -lkernel32 -Wall -O2
 ```
 
-Or with MSVC:
-```bash
-cl /LD /O2 dinput8_proxy.c kernel32.lib /Fe:dinput8.dll
-```
+## How It Works
 
-## How It Works (Deep Dive)
-
-1. **DLL Proxy**: Windows searches the application directory before `System32` when loading DLLs. By placing our `dinput8.dll` next to `eldenring.exe`, the game loads ours first. We export `DirectInput8Create` and forward it to the real system DLL.
-
-2. **IAT Hooking**: On `DLL_PROCESS_ATTACH`, we walk the game's PE import table looking for `CreateMutexW`/`CreateMutexExW`. If found, we replace the function pointer with our hook.
-
-3. **Inline Hooking (fallback)**: If the function isn't in the IAT (e.g., resolved through API sets like `api-ms-win-core-synch-*`), we patch the first 12 bytes of the actual kernel32 function with a `mov rax, addr; jmp rax` trampoline.
-
-4. **The Hook**: When `CreateMutex*` is called with a name containing "SekiroMutex", we return a `CreateEventW()` handle instead — a valid Windows handle that keeps the game happy, but not a named mutex that would block other instances.
+The DLL uses Windows DLL search order — the game loads `dinput8.dll` from its own directory before `System32`. Our version hooks `CreateMutexW` and `CreateMutexExW` (via IAT patching + inline hook fallback) to intercept the `SekiroMutex` creation. All other calls, including DirectInput, are forwarded to the real system DLLs.
 
 ## License
 
-MIT License — do whatever you want with it.
+[MIT](LICENSE)
