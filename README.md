@@ -16,13 +16,23 @@ A tiny DLL proxy (`dinput8.dll`, 48KB) that sits in the game folder and intercep
 - Survives game updates (hooks Windows API, not game code)
 - No scripts to run — just drop the file and launch
 
-> **Important:** This mod does not work with Easy Anti-Cheat (EAC). You must launch the game through [Seamless Coop](https://www.nexusmods.com/eldenring/mods/510) (`ersc_launcher.exe`) or another launcher that bypasses EAC. The standard `start_protected_game.exe` launcher will not load the mod.
+## About Anti-Cheat (EAC)
+
+Elden Ring ships with Easy Anti-Cheat. The standard launcher (`start_protected_game.exe`) activates EAC, which blocks DLL mods from loading — including this one.
+
+You have two options depending on what you want to do:
+
+**Playing co-op together (two players, one PC):**
+Use [Seamless Coop](https://www.nexusmods.com/eldenring/mods/510). Its launcher (`ersc_launcher.exe`) bypasses EAC and provides its own P2P networking so both instances can connect to each other. Official online servers require EAC, so Seamless Coop is the way to go for local co-op.
+
+**Playing separately (two players, different saves, offline):**
+Just launch `eldenring.exe` directly instead of `start_protected_game.exe`. No EAC, no Seamless Coop needed. Both instances run independently in offline mode.
 
 ## Installation
 
 1. Download `dinput8.dll` from [Releases](../../releases)
 2. Copy it to your Elden Ring `Game/` folder (next to `eldenring.exe`)
-3. Launch the game from both environments
+3. Launch the game from both environments (see above for which launcher to use)
 
 ### Where is the Game folder?
 
@@ -42,9 +52,10 @@ Delete `dinput8.dll` from the `Game/` folder. Optionally delete `DINPUT8.log`.
 
 | | Status |
 |---|---|
-| **Seamless Coop** | Required — its launcher bypasses EAC, which is needed for the mod to load |
+| **Seamless Coop** | Works — needed for co-op between instances |
+| **Offline / solo** | Works — launch `eldenring.exe` directly |
+| **Official online (EAC)** | Not compatible — EAC blocks DLL mods |
 | **ModEngine2** | Conflict — also uses `dinput8.dll`. See [workaround](#modengine2-workaround) |
-| **EAC** | **Not compatible** — EAC prevents the DLL from loading. You need a launcher that bypasses it (Seamless Coop, offline launch, etc.) |
 | **Game updates** | Unaffected — version-independent |
 
 ### ModEngine2 Workaround

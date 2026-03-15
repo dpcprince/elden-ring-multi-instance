@@ -8,6 +8,27 @@ This mod removes that restriction with a tiny DLL proxy (48KB).
 Two people can play on the same machine using ASTER, Sandboxie,
 or any multi-seat / split-desktop setup.
 
+  - No game files modified
+  - Survives game updates (hooks Windows API, not game code)
+  - No scripts to run — drop the file and launch
+
+
+ABOUT ANTI-CHEAT (EAC)
+
+The standard launcher (start_protected_game.exe) activates EAC,
+which blocks DLL mods from loading — including this one.
+
+You have two options depending on your use case:
+
+  Playing co-op together (two players, one PC):
+    Use Seamless Coop. Its launcher (ersc_launcher.exe) bypasses
+    EAC and provides its own P2P networking so both instances can
+    connect to each other.
+
+  Playing separately (two players, different saves, offline):
+    Launch eldenring.exe directly instead of start_protected_game.exe.
+    No EAC, no Seamless Coop needed. Both instances run independently.
+
 
 HOW IT WORKS
 
@@ -15,16 +36,6 @@ The mod uses Windows DLL search order — the game loads our
 dinput8.dll from its folder before the system one. On load, it
 hooks the mutex creation call and returns a dummy handle instead
 of a real named mutex. Each instance thinks it's the only one.
-
-  - No game files modified
-  - Survives game updates (hooks Windows API, not game code)
-  - No scripts to run — drop the file and launch
-  - Compatible with Seamless Coop
-
-IMPORTANT: This mod does NOT work with Easy Anti-Cheat (EAC).
-You must launch the game through Seamless Coop (ersc_launcher.exe)
-or another launcher that bypasses EAC. The standard
-start_protected_game.exe will not load the mod.
 
 
 INSTALLATION
@@ -34,7 +45,7 @@ INSTALLATION
   3. Launch the game from both environments
 
 To find your Game folder:
-  Steam → right-click Elden Ring → Manage → Browse Local Files → Game/
+  Steam > right-click Elden Ring > Manage > Browse Local Files > Game/
 
 
 UNINSTALLATION
@@ -51,12 +62,11 @@ Open it — if you see "BLOCKED SekiroMutex", it's working.
 
 COMPATIBILITY
 
-  Seamless Coop   — Required. Its launcher bypasses EAC, which is
-                    needed for the mod to load.
+  Seamless Coop   — Works. Needed for co-op between instances.
+  Offline / solo  — Works. Launch eldenring.exe directly.
+  Official online — Not compatible. EAC blocks DLL mods.
   ModEngine2      — Conflict (both use dinput8.dll).
                     Use the included kill_mutex.ps1 fallback instead.
-  EAC             — NOT compatible. EAC prevents the DLL from loading.
-                    You need a launcher that bypasses it.
   Game updates    — Unaffected, version-independent.
 
 
